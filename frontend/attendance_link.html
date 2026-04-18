@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Link | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Attendance Link</span>
+                <h1 id="publicPortalHeading">Student Attendance</h1>
+            </div>
+        </header>
+
+        <main class="content-stack">
+            <section class="glass-card panel-card">
+                <div class="summary-header">
+                    <div>
+                        <span class="eyebrow">Profile</span>
+                        <h2 id="publicProfileName">Attendance Overview</h2>
+                        <p id="publicProfileMeta" class="muted-text">Loading student attendance details.</p>
+                    </div>
+                </div>
+                <p id="publicPortalMessage" class="status-message"></p>
+            </section>
+
+            <section class="stats-grid stats-grid-three">
+                <article class="stat-card glass-card">
+                    <p>Working Days</p>
+                    <h2 id="publicWorkingDays">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Present</p>
+                    <h2 id="publicPresentCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Absent</p>
+                    <h2 id="publicAbsentCount">0</h2>
+                </article>
+            </section>
+
+            <section class="glass-card panel-card">
+                <div class="summary-banner">
+                    <span class="summary-label">Attendance Percentage</span>
+                    <strong id="publicAttendancePercentage">0%</strong>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Subjects</th>
+                            </tr>
+                        </thead>
+                        <tbody id="publicAttendanceTableBody">
+                            <tr><td colspan="3">Waiting for attendance data.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+
+        function renderPublicProfile(student) {
+            document.getElementById("publicPortalHeading").textContent = `${student.name} (${student.roll_no})`;
+            document.getElementById("publicProfileName").textContent = student.name;
+            document.getElementById("publicProfileMeta").textContent = `${student.roll_no} | ${student.branch} | Semester ${student.semester}`;
+        }
+
+        async function loadPublicAttendance() {
+            const token = new URLSearchParams(window.location.search).get("token");
+            const messageElement = document.getElementById("publicPortalMessage");
+
+            if (!token) {
+                messageElement.textContent = "Attendance link token is missing.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            messageElement.textContent = "Loading attendance details...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/public-student-attendance/${encodeURIComponent(token)}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load attendance details");
+                }
+
+                renderPublicProfile(data.student);
+                document.getElementById("publicWorkingDays").textContent = data.summary.working_days;
+                document.getElementById("publicPresentCount").textContent = data.summary.present_count;
+                document.getElementById("publicAbsentCount").textContent = data.summary.absent_count;
+                document.getElementById("publicAttendancePercentage").textContent = `${data.summary.attendance_percentage}%`;
+                document.getElementById("publicAttendanceTableBody").innerHTML = data.records.length
+                    ? data.records.map((record) => `
+                        <tr>
+                            <td>${record.date}</td>
+                            <td><span class="badge ${record.status === "Present" ? "badge-success" : "badge-danger"}">${record.status}</span></td>
+                            <td>${record.subjects?.length ? record.subjects.join(", ") : "-"}</td>
+                        </tr>
+                    `).join("")
+                    : `<tr><td colspan="3">No attendance records found.</td></tr>`;
+
+                messageElement.textContent = "Attendance link loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                document.getElementById("publicAttendanceTableBody").innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        loadPublicAttendance();
+    </script>
+</body>
+</html>

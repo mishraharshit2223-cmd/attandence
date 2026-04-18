@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Teacher Panel</span>
+                <h1 id="teacherHeading">Teacher Dashboard</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="teacher_dashboard.html" class="active">Dashboard</a>
+                <button id="teacherLogoutBtn" class="ghost-btn" type="button">Logout</button>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="stats-grid">
+                <article class="stat-card glass-card">
+                    <p>Total Assigned Classes</p>
+                    <h2 id="teacherAssignedClasses">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Subjects</p>
+                    <h2 id="teacherSubjectCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Marked Attendance Sessions</p>
+                    <h2 id="teacherMarkedSessions">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Class Strength</p>
+                    <h2 id="teacherCoveredStudents">0</h2>
+                </article>
+            </section>
+
+            <section class="split-layout">
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Assigned Classes</span>
+                        <h2>Mark Attendance</h2>
+                    </div>
+                    <div class="filters-grid filters-grid-wide">
+                        <div class="input-group">
+                            <label for="teacherAssignmentSelect">Assigned Class</label>
+                            <select id="teacherAssignmentSelect"></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherAttendanceDate">Date</label>
+                            <input type="date" id="teacherAttendanceDate">
+                        </div>
+                        <div class="input-group align-end">
+                            <button id="loadTeacherClassBtn" type="button" class="primary-btn">Load Students</button>
+                        </div>
+                    </div>
+                    <p id="teacherAttendanceMessage" class="status-message"></p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Roll No</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherAttendanceTableBody">
+                                <tr><td colspan="3">Select an assigned class to load students.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button id="submitTeacherAttendanceBtn" type="button" class="primary-btn">Submit Attendance</button>
+                </section>
+                <br>
+
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Student Report</span>
+                        <h2>View Student Attendance</h2>
+                    </div>
+                    <div class="filters-grid filters-grid-wide">
+                        <div class="input-group">
+                            <label for="teacherReportRollNo">Roll No</label>
+                            <input type="text" id="teacherReportRollNo" placeholder="25014C04010" maxlength="11">
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherReportStart">Start Date</label>
+                            <input type="date" id="teacherReportStart">
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherReportEnd">End Date</label>
+                            <input type="date" id="teacherReportEnd">
+                        </div>
+                        <div class="input-group align-end">
+                            <button id="loadTeacherReportBtn" type="button" class="primary-btn">Load Report</button>
+                        </div>
+                    </div>
+                    <p id="teacherReportMessage" class="status-message"></p>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherReportTableBody">
+                                <tr><td colspan="3">Enter a roll number to view report.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let teacherSession = null;
+        let teacherAssignments = [];
+
+        function ensureTeacher() {
+            teacherSession = JSON.parse(localStorage.getItem("attendanceTeacher") || "null");
+            if (!teacherSession) {
+                window.location.href = "teacher_login.html";
+            }
+            document.getElementById("teacherHeading").textContent = `${teacherSession.name} (${teacherSession.teacher_id})`;
+            document.getElementById("teacherAttendanceDate").value = new Date().toISOString().split("T")[0];
+        }
+
+        async function loadTeacherDashboard() {
+            const [dashboardRes, assignmentsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/teacher-dashboard/${encodeURIComponent(teacherSession.teacher_id)}`),
+                fetch(`${API_BASE_URL}/teacher-assignments/${encodeURIComponent(teacherSession.teacher_id)}`)
+            ]);
+            const [dashboardData, assignmentsData] = await Promise.all([dashboardRes.json(), assignmentsRes.json()]);
+            teacherAssignments = assignmentsData.assignments || [];
+
+            document.getElementById("teacherAssignedClasses").textContent = dashboardData.stats.total_assigned_classes;
+            document.getElementById("teacherSubjectCount").textContent = dashboardData.stats.total_subjects;
+            document.getElementById("teacherMarkedSessions").textContent = dashboardData.stats.marked_attendance_sessions;
+            document.getElementById("teacherCoveredStudents").textContent = dashboardData.stats.total_students_in_assigned_classes;
+
+            document.getElementById("teacherAssignmentSelect").innerHTML = teacherAssignments.length
+                ? teacherAssignments.map((item) => `
+                    <option value="${item.subject_code}">${item.subject_name} | ${item.branch} | Sem ${item.semester}</option>
+                `).join("")
+                : `<option value="">No class assigned</option>`;
+        }
+
+        function renderTeacherClassStudents(students) {
+            const tableBody = document.getElementById("teacherAttendanceTableBody");
+            if (!students.length) {
+                tableBody.innerHTML = `<tr><td colspan="3">No students found for this class.</td></tr>`;
+                return;
+            }
+            tableBody.innerHTML = students.map((student) => `
+                <tr>
+                    <td>${student.roll_no}</td>
+                    <td>${student.name}</td>
+                    <td>
+                        <div class="attendance-choice-group" data-roll="${student.roll_no}">
+                            <label class="attendance-pill present-pill active">
+                                <input type="radio" name="teacher-attendance-${student.roll_no}" value="Present" checked>
+                                <span class="attendance-dot"></span>
+                                <span>Present</span>
+                            </label>
+                            <label class="attendance-pill absent-pill">
+                                <input type="radio" name="teacher-attendance-${student.roll_no}" value="Absent">
+                                <span class="attendance-dot"></span>
+                                <span>Absent</span>
+                            </label>
+                        </div>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadAssignedClassStudents() {
+            const subjectCode = document.getElementById("teacherAssignmentSelect").value;
+            const messageElement = document.getElementById("teacherAttendanceMessage");
+            if (!subjectCode) {
+                messageElement.textContent = "No assigned class selected.";
+                messageElement.className = "status-message error";
+                return;
+            }
+            messageElement.textContent = "Loading assigned class students...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teacher-class-students?teacher_id=${encodeURIComponent(teacherSession.teacher_id)}&subject_code=${encodeURIComponent(subjectCode)}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load students");
+                }
+                renderTeacherClassStudents(data.students);
+                messageElement.textContent = `${data.assignment.subject_name} students loaded successfully.`;
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        async function submitTeacherAttendance() {
+            const groups = document.querySelectorAll("#teacherAttendanceTableBody .attendance-choice-group");
+            const subjectCode = document.getElementById("teacherAssignmentSelect").value;
+            const date = document.getElementById("teacherAttendanceDate").value;
+            const messageElement = document.getElementById("teacherAttendanceMessage");
+
+            if (!subjectCode || !date || !groups.length) {
+                messageElement.textContent = "Load an assigned class before submitting attendance.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            const entries = Array.from(groups).map((group) => ({
+                roll_no: group.dataset.roll,
+                status: group.querySelector("input[type='radio']:checked").value
+            }));
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teacher-mark-attendance`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        teacher_id: teacherSession.teacher_id,
+                        subject_code: subjectCode,
+                        date,
+                        entries
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to save teacher attendance");
+                }
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+                loadTeacherDashboard();
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        async function loadTeacherStudentReport() {
+            const rollNo = document.getElementById("teacherReportRollNo").value.trim().toUpperCase();
+            const messageElement = document.getElementById("teacherReportMessage");
+            const params = new URLSearchParams({
+                teacher_id: teacherSession.teacher_id,
+                roll_no: rollNo
+            });
+            const startDate = document.getElementById("teacherReportStart").value;
+            const endDate = document.getElementById("teacherReportEnd").value;
+            if (startDate) params.append("start_date", startDate);
+            if (endDate) params.append("end_date", endDate);
+
+            if (!rollNo) {
+                messageElement.textContent = "Please enter a roll number.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teacher-student-report?${params.toString()}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load student report");
+                }
+                document.getElementById("teacherReportTableBody").innerHTML = data.records.length
+                    ? data.records.map((record) => `
+                        <tr>
+                            <td>${record.date}</td>
+                            <td>${record.subject_name}</td>
+                            <td><span class="badge ${record.status === "Present" ? "badge-success" : "badge-danger"}">${record.status}</span></td>
+                        </tr>
+                    `).join("")
+                    : `<tr><td colspan="3">No attendance records found.</td></tr>`;
+                messageElement.textContent = `Student report loaded for ${data.student.name}.`;
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        document.getElementById("teacherAttendanceTableBody").addEventListener("change", (event) => {
+            const input = event.target;
+            if (!input.matches(".attendance-pill input[type='radio']")) return;
+            const group = input.closest(".attendance-choice-group");
+            group.querySelectorAll(".attendance-pill").forEach((label) => label.classList.remove("active"));
+            input.closest(".attendance-pill").classList.add("active");
+        });
+
+        document.getElementById("loadTeacherClassBtn").addEventListener("click", loadAssignedClassStudents);
+        document.getElementById("submitTeacherAttendanceBtn").addEventListener("click", submitTeacherAttendance);
+        document.getElementById("loadTeacherReportBtn").addEventListener("click", loadTeacherStudentReport);
+        document.getElementById("teacherLogoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("attendanceTeacher");
+            window.location.href = "teacher_login.html";
+        });
+        document.getElementById("teacherReportRollNo").addEventListener("input", (event) => {
+            event.target.value = event.target.value.toUpperCase().replace(/\s+/g, "");
+        });
+
+        ensureTeacher();
+        loadTeacherDashboard();
+    </script>
+</body>
+</html>
+

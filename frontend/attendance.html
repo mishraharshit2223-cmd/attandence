@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Attendance Manager</span>
+                <h1>Mark Daily Attendance</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html" class="active">Attendance</a>
+                <a href="student_status.html">Student Status</a>
+                <a href="report.html">Reports</a>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">Filters</span>
+                    <h2>Select Date and Student Group</h2>
+                </div>
+
+                <div class="filters-grid">
+                    <div class="input-group">
+                        <label for="attendanceDate">Date</label>
+                        <input type="date" id="attendanceDate">
+                    </div>
+                    <div class="input-group">
+                        <label for="branchFilter">Branch</label>
+                        <select id="branchFilter">
+                            <option value="">All Branches</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                            <option value="Electronics and Telecommunication Engineering">Electronics and Telecommunication Engineering</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="semesterFilter">Semester</label>
+                        <select id="semesterFilter">
+                            <option value="">All Semesters</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
+                    <div class="input-group align-end">
+                        <button id="loadStudentsBtn" type="button" class="primary-btn">Load Students</button>
+                    </div>
+                </div>
+
+                <p id="attendanceMessage" class="status-message"></p>
+            </section>
+
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">Attendance Sheet</span>
+                    <h2>Students</h2>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Branch</th>
+                                <th>Semester</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <tr><td colspan="5">Load students to mark attendance.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button id="submitAttendanceBtn" type="button" class="primary-btn">Submit Attendance</button>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let allStudents = [];
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        function setTodayDate() {
+            document.getElementById("attendanceDate").value = new Date().toISOString().split("T")[0];
+        }
+
+        function renderStudents() {
+            const branch = document.getElementById("branchFilter").value;
+            const semester = document.getElementById("semesterFilter").value;
+            const tableBody = document.getElementById("attendanceTableBody");
+
+            const filteredStudents = allStudents.filter((student) => {
+                const branchMatch = !branch || student.branch === branch;
+                const semesterMatch = !semester || student.semester === semester;
+                return branchMatch && semesterMatch;
+            });
+
+            if (!filteredStudents.length) {
+                tableBody.innerHTML = `<tr><td colspan="5">No students match the selected filters.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = filteredStudents.map((student) => `
+                <tr>
+                    <td>${student.roll_no}</td>
+                    <td>${student.name}</td>
+                    <td>${student.branch}</td>
+                    <td>${student.semester}</td>
+                    <td>
+                        <div class="attendance-choice-group" data-roll="${student.roll_no}">
+                            <label class="attendance-pill present-pill active">
+                                <input type="radio" name="attendance-${student.roll_no}" value="Present" checked>
+                                <span class="attendance-dot"></span>
+                                <span>Present</span>
+                            </label>
+                            <label class="attendance-pill absent-pill">
+                                <input type="radio" name="attendance-${student.roll_no}" value="Absent">
+                                <span class="attendance-dot"></span>
+                                <span>Absent</span>
+                            </label>
+                        </div>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadStudents() {
+            const messageElement = document.getElementById("attendanceMessage");
+            messageElement.textContent = "Loading students...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/students`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load students");
+                }
+
+                allStudents = data.students;
+                renderStudents();
+                messageElement.textContent = "Students loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        async function submitAttendance() {
+            const date = document.getElementById("attendanceDate").value;
+            const messageElement = document.getElementById("attendanceMessage");
+            const statusGroups = document.querySelectorAll(".attendance-choice-group");
+
+            if (!date) {
+                messageElement.textContent = "Please select an attendance date.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            if (!statusGroups.length) {
+                messageElement.textContent = "No students available to mark attendance.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            messageElement.textContent = "Submitting attendance...";
+            messageElement.className = "status-message";
+
+            try {
+                for (const group of statusGroups) {
+                    const selectedInput = group.querySelector("input[type='radio']:checked");
+                    if (!selectedInput) {
+                        throw new Error(`Please choose attendance status for ${group.dataset.roll}`);
+                    }
+
+                    const payload = {
+                        roll_no: group.dataset.roll,
+                        date,
+                        status: selectedInput.value
+                    };
+
+                    const response = await fetch(`${API_BASE_URL}/mark-attendance`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.detail || `Unable to save attendance for ${payload.roll_no}`);
+                    }
+                }
+
+                messageElement.textContent = "Attendance submitted successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        document.getElementById("loadStudentsBtn").addEventListener("click", renderStudents);
+        document.getElementById("branchFilter").addEventListener("change", renderStudents);
+        document.getElementById("semesterFilter").addEventListener("change", renderStudents);
+        document.getElementById("submitAttendanceBtn").addEventListener("click", submitAttendance);
+        document.getElementById("attendanceTableBody").addEventListener("change", (event) => {
+            const input = event.target;
+            if (!input.matches(".attendance-pill input[type='radio']")) {
+                return;
+            }
+
+            const group = input.closest(".attendance-choice-group");
+            const labels = group.querySelectorAll(".attendance-pill");
+            labels.forEach((label) => label.classList.remove("active"));
+            input.closest(".attendance-pill").classList.add("active");
+        });
+
+        ensureAuth();
+        setTodayDate();
+        loadStudents();
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Admin Panel</span>
+                <h1>Dashboard Overview</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html" class="active">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="student_status.html">Student Status</a>
+                <a href="report.html">Reports</a>
+                <button id="logoutBtn" class="ghost-btn" type="button">Logout</button>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="stats-grid">
+                <article class="stat-card glass-card">
+                    <p>Total Students</p>
+                    <h2 id="totalStudents">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Attendance Records</p>
+                    <h2 id="totalAttendance">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Present Count</p>
+                    <h2 id="presentCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Absent Count</p>
+                    <h2 id="absentCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Subjects</p>
+                    <h2 id="totalSubjects">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Teachers</p>
+                    <h2 id="totalTeachers">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total HODs</p>
+                    <h2 id="totalHods">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Assignments</p>
+                    <h2 id="totalAssignments">0</h2>
+                </article>
+            </section>
+
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">Quick Summary</span>
+                    <h2>Live attendance insights</h2>
+                    <p>Track your institutionâ€™s student strength and attendance activity in one place.</p>
+                </div>
+                <p id="dashboardMessage" class="status-message"></p>
+            </section>
+        </main>
+    </div>
+
+    
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        async function loadStats() {
+            const messageElement = document.getElementById("dashboardMessage");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/dashboard-stats`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load dashboard statistics");
+                }
+
+                const stats = data.stats;
+                document.getElementById("totalStudents").textContent = stats.total_students;
+                document.getElementById("totalAttendance").textContent = stats.total_attendance_records;
+                document.getElementById("presentCount").textContent = stats.present_count;
+                document.getElementById("absentCount").textContent = stats.absent_count;
+                document.getElementById("totalSubjects").textContent = stats.total_subjects || 0;
+                document.getElementById("totalTeachers").textContent = stats.total_teachers || 0;
+                document.getElementById("totalHods").textContent = stats.total_hods || 0;
+                document.getElementById("totalAssignments").textContent = stats.total_assignments || 0;
+                messageElement.textContent = "Dashboard loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("attendanceAdmin");
+            window.location.href = "login.html";
+        });
+
+        ensureAuth();
+        loadStats();
+    </script>
+</body>
+</html>
+

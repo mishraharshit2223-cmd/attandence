@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Branch Report | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell report-page">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Summary Reports</span>
+                <h1>Branch and Semester Attendance Report</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="student_status.html">Student Status</a>
+                <a href="report.html" class="active">Reports</a>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="glass-card panel-card no-print">
+                <div class="section-heading">
+                    <span class="eyebrow">Filters</span>
+                    <h2>Build Attendance Summary</h2>
+                </div>
+
+                <div class="filters-grid filters-grid-wide">
+                    <div class="input-group">
+                        <label for="reportBranch">Branch</label>
+                        <select id="reportBranch">
+                            <option value="">Select Branch</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                            <option value="Electronics and Telecommunication Engineering">Electronics and Telecommunication Engineering</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="reportSemester">Semester</label>
+                        <select id="reportSemester">
+                            <option value="">Select Semester</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="reportStartDate">Start Date</label>
+                        <input type="date" id="reportStartDate">
+                    </div>
+                    <div class="input-group">
+                        <label for="reportEndDate">End Date</label>
+                        <input type="date" id="reportEndDate">
+                    </div>
+                </div>
+
+                <div class="summary-actions top-actions">
+                    <button id="loadReportBtn" type="button" class="primary-btn">Load Report</button>
+                    <button id="downloadBranchReportBtn" type="button" class="ghost-btn">Download CSV</button>
+                    <button id="printBranchReportBtn" type="button" class="ghost-btn">Print Report</button>
+                </div>
+
+                <p id="reportMessage" class="status-message"></p>
+            </section>
+
+            <section class="stats-grid">
+                <article class="stat-card glass-card">
+                    <p>Working Days</p>
+                    <h2 id="reportWorkingDays">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Students</p>
+                    <h2 id="reportStudentCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Present</p>
+                    <h2 id="reportOverallPresent">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Absent</p>
+                    <h2 id="reportOverallAbsent">0</h2>
+                </article>
+            </section>
+
+            <section class="glass-card panel-card print-area">
+                <div class="summary-header">
+                    <div>
+                        <span class="eyebrow">Report</span>
+                        <h2 id="branchReportHeading">No report loaded</h2>
+                        <p id="branchReportSubtext" class="muted-text">Select branch, semester, and date range.</p>
+                    </div>
+                    <div class="summary-banner compact-banner">
+                        <div>
+                            <span class="summary-label">Overall Attendance</span>
+                            <strong id="reportOverallPercentage">0%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Working Days</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                                <th>Attendance %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="branchReportTableBody">
+                            <tr><td colspan="6">Load a report to view branch attendance summary.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let currentBranchReport = null;
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        function buildBranchReportQuery() {
+            const branch = document.getElementById("reportBranch").value;
+            const semester = document.getElementById("reportSemester").value;
+            const startDate = document.getElementById("reportStartDate").value;
+            const endDate = document.getElementById("reportEndDate").value;
+            const params = new URLSearchParams();
+
+            params.append("branch", branch);
+            params.append("semester", semester);
+            if (startDate) params.append("start_date", startDate);
+            if (endDate) params.append("end_date", endDate);
+            return params;
+        }
+
+        function renderBranchReport(data) {
+            currentBranchReport = data;
+            document.getElementById("reportWorkingDays").textContent = data.working_days;
+            document.getElementById("reportStudentCount").textContent = data.summary.student_count;
+            document.getElementById("reportOverallPresent").textContent = data.summary.overall_present;
+            document.getElementById("reportOverallAbsent").textContent = data.summary.overall_absent;
+            document.getElementById("reportOverallPercentage").textContent = `${data.summary.overall_attendance_percentage}%`;
+            document.getElementById("branchReportHeading").textContent = `${data.branch} | Semester ${data.semester}`;
+
+            const dateLabel = data.date_range.start_date || data.date_range.end_date
+                ? `${data.date_range.start_date || "Start"} to ${data.date_range.end_date || "End"}`
+                : "All recorded dates";
+            document.getElementById("branchReportSubtext").textContent = `Date Range: ${dateLabel}`;
+
+            const tableBody = document.getElementById("branchReportTableBody");
+            if (!data.student_reports.length) {
+                tableBody.innerHTML = `<tr><td colspan="6">No students found for this branch and semester.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = data.student_reports.map((student) => `
+                <tr>
+                    <td>${student.roll_no}</td>
+                    <td>${student.name}</td>
+                    <td>${student.working_days}</td>
+                    <td>${student.present_count}</td>
+                    <td>${student.absent_count}</td>
+                    <td>${student.attendance_percentage}%</td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadBranchReport() {
+            const messageElement = document.getElementById("reportMessage");
+            const branch = document.getElementById("reportBranch").value;
+            const semester = document.getElementById("reportSemester").value;
+
+            if (!branch || !semester) {
+                messageElement.textContent = "Please select branch and semester.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            messageElement.textContent = "Loading report...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/branch-semester-report?${buildBranchReportQuery().toString()}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load branch report");
+                }
+
+                renderBranchReport(data);
+                messageElement.textContent = "Report loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                currentBranchReport = null;
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        function downloadBranchReport() {
+            if (!currentBranchReport) {
+                document.getElementById("reportMessage").textContent = "Load a report first.";
+                document.getElementById("reportMessage").className = "status-message error";
+                return;
+            }
+
+            const rows = [
+                ["Branch", currentBranchReport.branch],
+                ["Semester", currentBranchReport.semester],
+                ["Working Days", currentBranchReport.working_days],
+                ["Total Students", currentBranchReport.summary.student_count],
+                ["Overall Present", currentBranchReport.summary.overall_present],
+                ["Overall Absent", currentBranchReport.summary.overall_absent],
+                ["Overall Attendance Percentage", `${currentBranchReport.summary.overall_attendance_percentage}%`],
+                [],
+                ["Roll No", "Name", "Working Days", "Present", "Absent", "Attendance Percentage"],
+                ...currentBranchReport.student_reports.map((student) => [
+                    student.roll_no,
+                    student.name,
+                    student.working_days,
+                    student.present_count,
+                    student.absent_count,
+                    `${student.attendance_percentage}%`
+                ])
+            ];
+
+            const csvContent = rows.map((row) => row.map((cell = "") => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `branch_semester_attendance_report.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById("loadReportBtn").addEventListener("click", loadBranchReport);
+        document.getElementById("downloadBranchReportBtn").addEventListener("click", downloadBranchReport);
+        document.getElementById("printBranchReportBtn").addEventListener("click", () => window.print());
+
+        ensureAuth();
+    </script>
+</body>
+</html>

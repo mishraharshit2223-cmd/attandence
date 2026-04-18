@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Student | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Student Management</span>
+                <h1>Add and Review Students</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html" class="active">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="student_status.html">Student Status</a>
+                <a href="report.html">Reports</a>
+            </nav>
+        </header>
+
+        <main class="split-layout">
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">New Entry</span>
+                    <h2>Add Student</h2>
+                </div>
+
+                <form id="studentForm" class="form-grid">
+                    <div class="input-group">
+                        <label for="rollNo">Roll Number</label>
+                        <input type="text" id="rollNo" placeholder="25014C04010" maxlength="11" required>
+                        <p class="helper-text">Example format: 25014C04010</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="branch">Branch</label>
+                        <select id="branch" required>
+                            <option value="">Select Branch</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                            <option value="Electronics and Telecommunication Engineering">Electronics and Telecommunication Engineering</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="semester">Semester</label>
+                        <select id="semester" required>
+                            <option value="">Select Semester</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="whatsappNo">WhatsApp Number</label>
+                        <input type="text" id="whatsappNo" placeholder="+919876543210">
+                    </div>
+                    <div class="input-group">
+                        <label for="parentWhatsappNo">Parent WhatsApp Number</label>
+                        <input type="text" id="parentWhatsappNo" placeholder="+919812345678">
+                    </div>
+                    <div class="input-group">
+                        <label for="studentPassword">Student Password</label>
+                        <input type="password" id="studentPassword" placeholder="Leave blank to use roll number">
+                    </div>
+
+                    <button type="submit" class="primary-btn">Add Student</button>
+                    <button type="button" id="cancelEditBtn" class="ghost-btn">Cancel Edit</button>
+                    <p id="studentMessage" class="status-message"></p>
+                </form>
+
+                <div class="import-box">
+                    <div class="section-heading compact-heading">
+                        <span class="eyebrow">Bulk Import</span>
+                        <h2>Upload Excel Sheet</h2>
+                        <p>Use a `.xlsx` file with columns: `roll_no`, `name`, `branch`, `semester`. Optional columns: `whatsapp_no`, `password`.</p>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="excelFile">Excel File</label>
+                        <input type="file" id="excelFile" accept=".xlsx">
+                    </div>
+
+                    <button type="button" id="importExcelBtn" class="primary-btn">Import Excel</button>
+                    <p class="helper-text">Roll number format should be like 25014C04010. Branches and semesters must match the dropdown values exactly.</p>
+                    <p id="importMessage" class="status-message"></p>
+                    <div id="importSummary" class="import-summary"></div>
+                </div>
+            </section>
+
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">Directory</span>
+                    <h2>Student List</h2>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Branch</th>
+                                <th>Semester</th>
+                                <th>WhatsApp</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let studentsCache = [];
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        function populateForm(student) {
+            document.getElementById("rollNo").value = student.roll_no;
+            document.getElementById("name").value = student.name;
+            document.getElementById("branch").value = student.branch;
+            document.getElementById("semester").value = student.semester;
+            document.getElementById("whatsappNo").value = student.whatsapp_no || "";
+            document.getElementById("parentWhatsappNo").value = student.parent_whatsapp_no || "";
+            document.getElementById("studentPassword").value = "";
+        }
+
+        function resetForm() {
+            const form = document.getElementById("studentForm");
+            form.reset();
+            form.dataset.editRoll = "";
+            document.querySelector("#studentForm .primary-btn").textContent = "Add Student";
+            document.getElementById("cancelEditBtn").style.display = "none";
+        }
+
+        async function loadStudents() {
+            const tableBody = document.getElementById("studentsTableBody");
+            tableBody.innerHTML = `<tr><td colspan="6">Loading students...</td></tr>`;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/students`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to fetch students");
+                }
+
+                studentsCache = data.students;
+
+                if (!data.students.length) {
+                    tableBody.innerHTML = `<tr><td colspan="6">No students found.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = data.students.map((student) => `
+                    <tr>
+                        <td>${student.roll_no}</td>
+                        <td>${student.name}</td>
+                        <td>${student.branch}</td>
+                        <td>${student.semester}</td>
+                        <td>${student.whatsapp_no || "-"}</td>
+                        <td class="actions-cell">
+                            <button type="button" class="table-btn edit-btn" data-action="edit" data-roll="${student.roll_no}">Edit</button>
+                            <button type="button" class="table-btn delete-btn" data-action="delete" data-roll="${student.roll_no}">Delete</button>
+                        </td>
+                    </tr>
+                `).join("");
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+            }
+        }
+
+        function editStudent(student) {
+            populateForm(student);
+            document.getElementById("studentForm").dataset.editRoll = student.roll_no;
+            document.querySelector("#studentForm .primary-btn").textContent = "Update Student";
+            document.getElementById("cancelEditBtn").style.display = "inline-flex";
+            document.getElementById("studentMessage").textContent = `Editing student ${student.roll_no}`;
+            document.getElementById("studentMessage").className = "status-message";
+        }
+
+        async function deleteStudent(rollNo) {
+            const messageElement = document.getElementById("studentMessage");
+
+            if (!confirm(`Delete student ${rollNo}? This will also remove attendance records.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/students/${encodeURIComponent(rollNo)}`, {
+                    method: "DELETE"
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to delete student");
+                }
+
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+                resetForm();
+                loadStudents();
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        document.getElementById("studentForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const messageElement = document.getElementById("studentMessage");
+            const editRoll = event.currentTarget.dataset.editRoll;
+            const payload = {
+                roll_no: document.getElementById("rollNo").value.trim().toUpperCase(),
+                name: document.getElementById("name").value.trim(),
+                branch: document.getElementById("branch").value.trim(),
+                semester: document.getElementById("semester").value.trim(),
+                whatsapp_no: document.getElementById("whatsappNo").value.trim(),
+                parent_whatsapp_no: document.getElementById("parentWhatsappNo").value.trim(),
+                password: document.getElementById("studentPassword").value.trim()
+            };
+
+            messageElement.textContent = "Saving student...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(
+                    editRoll ? `${API_BASE_URL}/students/${encodeURIComponent(editRoll)}` : `${API_BASE_URL}/add-student`,
+                    {
+                    method: editRoll ? "PUT" : "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to save student");
+                }
+
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+                resetForm();
+                loadStudents();
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+
+        document.getElementById("studentsTableBody").addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) {
+                return;
+            }
+
+            const rollNo = button.dataset.roll;
+            const action = button.dataset.action;
+
+            if (action === "edit") {
+                const student = studentsCache.find((item) => item.roll_no === rollNo);
+                if (student) {
+                    editStudent(student);
+                }
+                return;
+            }
+
+            if (action === "delete") {
+                deleteStudent(rollNo);
+            }
+        });
+
+        document.getElementById("cancelEditBtn").addEventListener("click", () => {
+            resetForm();
+            document.getElementById("studentMessage").textContent = "Edit cancelled.";
+            document.getElementById("studentMessage").className = "status-message";
+        });
+
+        document.getElementById("rollNo").addEventListener("input", (event) => {
+            event.target.value = event.target.value.toUpperCase().replace(/\s+/g, "");
+        });
+
+        document.getElementById("importExcelBtn").addEventListener("click", async () => {
+            const fileInput = document.getElementById("excelFile");
+            const messageElement = document.getElementById("importMessage");
+            const summaryElement = document.getElementById("importSummary");
+
+            if (!fileInput.files.length) {
+                messageElement.textContent = "Please select an Excel file first.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            messageElement.textContent = "Importing students from Excel...";
+            messageElement.className = "status-message";
+            summaryElement.innerHTML = "";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/import-students`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to import Excel sheet");
+                }
+
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+
+                const skippedRows = data.skipped_students || [];
+                summaryElement.innerHTML = `
+                    <div class="summary-chip success-chip">Added: ${data.summary.added_count}</div>
+                    <div class="summary-chip warning-chip">Skipped: ${data.summary.skipped_count}</div>
+                    ${skippedRows.length ? `
+                        <div class="summary-list">
+                            <h3>Skipped Rows</h3>
+                            <ul>
+                                ${skippedRows.map((item) => `<li>Row ${item.row} (${item.roll_no || "No Roll"}): ${item.reason}</li>`).join("")}
+                            </ul>
+                        </div>
+                    ` : ""}
+                `;
+
+                fileInput.value = "";
+                loadStudents();
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+
+        ensureAuth();
+        resetForm();
+        loadStudents();
+    </script>
+</body>
+</html>

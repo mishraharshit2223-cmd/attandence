@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOD Dashboard | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">HOD Panel</span>
+                <h1 id="hodHeading">HOD Dashboard</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="hod_dashboard.html" class="active">Dashboard</a>
+                <button id="hodLogoutBtn" class="ghost-btn" type="button">Logout</button>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="stats-grid stats-grid-three">
+                <article class="stat-card glass-card">
+                    <p>Total Subjects</p>
+                    <h2 id="hodTotalSubjects">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Total Assigned Lectures</p>
+                    <h2 id="hodTotalAssignments">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Teachers Assigned</p>
+                    <h2 id="hodTotalTeachers">0</h2>
+                </article>
+            </section>
+
+            <section class="split-layout">
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Assign Lecture</span>
+                        <h2>Assign Teacher to Subject</h2>
+                    </div>
+                    <form id="assignmentForm" class="form-grid">
+                        <div class="input-group">
+                            <label for="assignmentSemester">Semester</label>
+                            <select id="assignmentSemester" required>
+                                <option value="">Select Semester</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="assignmentSubject">Subject</label>
+                            <select id="assignmentSubject" required>
+                                <option value="">Select Subject</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="assignmentTeacher">Teacher</label>
+                            <select id="assignmentTeacher" required>
+                                <option value="">Select Teacher</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="primary-btn">Assign Lecture</button>
+                        <p id="assignmentMessage" class="status-message"></p>
+                    </form>
+                </section>
+
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Assignments</span>
+                        <h2>Current Branch Schedule</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Semester</th>
+                                    <th>Subject</th>
+                                    <th>Teacher</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hodAssignmentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let hodSession = null;
+        let branchSubjects = [];
+
+        function ensureHod() {
+            hodSession = JSON.parse(localStorage.getItem("attendanceHod") || "null");
+            if (!hodSession) {
+                window.location.href = "hod_login.html";
+            }
+            document.getElementById("hodHeading").textContent = `${hodSession.name} | ${hodSession.branch}`;
+        }
+
+        async function loadHodDashboard() {
+            const [dashboardRes, teachersRes, assignmentsRes, subjectsRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/hod-dashboard/${encodeURIComponent(hodSession.hod_id)}`),
+                fetch(`${API_BASE_URL}/teachers`),
+                fetch(`${API_BASE_URL}/assignments?hod_id=${encodeURIComponent(hodSession.hod_id)}`),
+                fetch(`${API_BASE_URL}/subjects?branch=${encodeURIComponent(hodSession.branch)}`)
+            ]);
+
+            const [dashboardData, teachersData, assignmentsData, subjectsData] = await Promise.all([
+                dashboardRes.json(),
+                teachersRes.json(),
+                assignmentsRes.json(),
+                subjectsRes.json()
+            ]);
+
+            branchSubjects = subjectsData.subjects || [];
+
+            document.getElementById("hodTotalSubjects").textContent = dashboardData.stats.total_subjects;
+            document.getElementById("hodTotalAssignments").textContent = dashboardData.stats.total_assigned_lectures;
+            document.getElementById("hodTotalTeachers").textContent = dashboardData.stats.total_teachers_assigned;
+
+            document.getElementById("assignmentTeacher").innerHTML = `<option value="">Select Teacher</option>` + (teachersData.teachers || []).map((teacher) => `
+                <option value="${teacher.teacher_id}">${teacher.name} (${teacher.teacher_id})</option>
+            `).join("");
+
+            document.getElementById("hodAssignmentsTableBody").innerHTML = assignmentsData.assignments?.length
+                ? assignmentsData.assignments.map((item) => `
+                    <tr>
+                        <td>${item.semester}</td>
+                        <td>${item.subject_name}</td>
+                        <td>${item.teacher_name}</td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="3">No lectures assigned yet.</td></tr>`;
+        }
+
+        function populateSubjectDropdown() {
+            const semester = document.getElementById("assignmentSemester").value;
+            const subjectSelect = document.getElementById("assignmentSubject");
+            const filtered = branchSubjects.filter((item) => !semester || item.semester === semester);
+
+            subjectSelect.innerHTML = `<option value="">Select Subject</option>` + filtered.map((item) => `
+                <option value="${item.subject_code}">${item.subject_name} (${item.subject_code})</option>
+            `).join("");
+        }
+
+        document.getElementById("assignmentSemester").addEventListener("change", populateSubjectDropdown);
+
+        document.getElementById("assignmentForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const messageElement = document.getElementById("assignmentMessage");
+            messageElement.textContent = "Assigning lecture...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/assignments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        hod_id: hodSession.hod_id,
+                        teacher_id: document.getElementById("assignmentTeacher").value,
+                        branch: hodSession.branch,
+                        semester: document.getElementById("assignmentSemester").value,
+                        subject_code: document.getElementById("assignmentSubject").value
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to assign lecture");
+                }
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+                event.target.reset();
+                populateSubjectDropdown();
+                loadHodDashboard();
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+
+        document.getElementById("hodLogoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("attendanceHod");
+            window.location.href = "hod_login.html";
+        });
+
+        ensureHod();
+        loadHodDashboard();
+    </script>
+</body>
+</html>

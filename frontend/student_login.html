@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <div class="page-shell">
+        <div class="auth-card glass-card">
+            <div class="section-heading">
+                <span class="eyebrow">Student Portal</span>
+                <h1>Student Login</h1>
+                <p>Check your attendance activity, present/absent history, and percentage.</p>
+            </div>
+
+            <form id="studentLoginForm" class="form-grid">
+                <div class="input-group">
+                    <label for="studentRollNo">Roll Number</label>
+                    <input type="text" id="studentRollNo" placeholder="25014C04010" maxlength="11" required>
+                </div>
+                <div class="input-group">
+                    <label for="studentPortalPassword">Password</label>
+                    <input type="password" id="studentPortalPassword" required>
+                </div>
+                <button type="submit" class="primary-btn">Login</button>
+                <button type="button" id="forgotPasswordBtn" class="ghost-btn">Forgot Password</button>
+                <p id="studentLoginMessage" class="status-message"></p>
+                <div class="role-links">
+                    <a href="login.html" class="ghost-btn">Admin Login</a>
+                    <a href="teacher_login.html" class="ghost-btn">Teacher Login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+
+        function saveStudentSession(student) {
+            const serialized = JSON.stringify(student);
+            try {
+                localStorage.setItem("attendanceStudent", serialized);
+                sessionStorage.setItem("attendanceStudent", serialized);
+            } catch (error) {
+                // Ignore storage failures in file:// contexts.
+            }
+        }
+
+        function clearStudentSession() {
+            try {
+                localStorage.removeItem("attendanceStudent");
+                sessionStorage.removeItem("attendanceStudent");
+            } catch (error) {
+                // Ignore storage failures in file:// contexts.
+            }
+        }
+
+        if (new URLSearchParams(window.location.search).get("logout") === "1") {
+            clearStudentSession();
+        }
+
+        document.getElementById("studentRollNo").addEventListener("input", (event) => {
+            event.target.value = event.target.value.toUpperCase().replace(/\s+/g, "");
+        });
+
+        document.getElementById("studentLoginForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const messageElement = document.getElementById("studentLoginMessage");
+            messageElement.textContent = "Checking credentials...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/student-login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        roll_no: document.getElementById("studentRollNo").value.trim().toUpperCase(),
+                        password: document.getElementById("studentPortalPassword").value.trim()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Student login failed");
+                }
+
+                saveStudentSession(data.student);
+                const redirectParams = new URLSearchParams({
+                    roll_no: data.student.roll_no || "",
+                    name: data.student.name || "",
+                    branch: data.student.branch || "",
+                    semester: data.student.semester || "",
+                    whatsapp_no: data.student.whatsapp_no || ""
+                });
+                window.location.replace(`student_dashboard.html?${redirectParams.toString()}`);
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+
+        document.getElementById("forgotPasswordBtn").addEventListener("click", async () => {
+            const messageElement = document.getElementById("studentLoginMessage");
+            const rollNo = document.getElementById("studentRollNo").value.trim().toUpperCase();
+            if (!rollNo) {
+                messageElement.textContent = "Enter your roll number first.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            messageElement.textContent = "Sending password recovery details...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/student-forgot-password`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ roll_no: rollNo })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to send recovery details");
+                }
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+    </script>
+</body>
+</html>
+

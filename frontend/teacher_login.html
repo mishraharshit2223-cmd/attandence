@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Login | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <div class="page-shell">
+        <div class="auth-card glass-card">
+            <div class="section-heading">
+                <span class="eyebrow">Faculty Access</span>
+                <h1>Teacher Login</h1>
+                <p>Log in to mark class attendance and review student reports.</p>
+            </div>
+            <form id="teacherLoginForm" class="form-grid">
+                <div class="input-group">
+                    <label for="teacherLoginId">Teacher ID</label>
+                    <input type="text" id="teacherLoginId" required>
+                </div>
+                <div class="input-group">
+                    <label for="teacherLoginPassword">Password</label>
+                    <input type="password" id="teacherLoginPassword" required>
+                </div>
+                <button type="submit" class="primary-btn">Login</button>
+                <p id="teacherLoginMessage" class="status-message"></p>
+                <a href="login.html" class="text-link">Back to Admin Login</a>
+            </form>
+        </div>
+    </div>
+
+    
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        document.getElementById("teacherLoginForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const messageElement = document.getElementById("teacherLoginMessage");
+            messageElement.textContent = "Checking credentials...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teacher-login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_id: document.getElementById("teacherLoginId").value.trim().toUpperCase(),
+                        password: document.getElementById("teacherLoginPassword").value.trim()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Login failed");
+                }
+                localStorage.setItem("attendanceTeacher", JSON.stringify(data.teacher));
+                window.location.href = "teacher_dashboard.html";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+    </script>
+</body>
+</html>
+

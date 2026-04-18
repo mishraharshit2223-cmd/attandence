@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Status | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Student Analytics</span>
+                <h1>Student Attendance Status</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="student_status.html" class="active">Student Status</a>
+                <a href="report.html">Reports</a>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="glass-card panel-card">
+                <div class="section-heading">
+                    <span class="eyebrow">Search</span>
+                    <h2>Find Individual Attendance</h2>
+                </div>
+
+                <div class="filters-grid filters-grid-wide">
+                    <div class="input-group">
+                        <label for="statusRollNo">Roll Number</label>
+                        <input type="text" id="statusRollNo" placeholder="25014C04010" maxlength="11">
+                    </div>
+                    <div class="input-group">
+                        <label for="statusStartDate">Start Date</label>
+                        <input type="date" id="statusStartDate">
+                    </div>
+                    <div class="input-group">
+                        <label for="statusEndDate">End Date</label>
+                        <input type="date" id="statusEndDate">
+                    </div>
+                    <div class="input-group align-end">
+                        <button id="loadStudentStatusBtn" type="button" class="primary-btn">Check Status</button>
+                    </div>
+                </div>
+
+                <p id="studentStatusMessage" class="status-message"></p>
+            </section>
+
+            <section class="stats-grid stats-grid-three">
+                <article class="stat-card glass-card">
+                    <p>Working Days</p>
+                    <h2 id="studentWorkingDays">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Present</p>
+                    <h2 id="studentPresentCount">0</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Absent</p>
+                    <h2 id="studentAbsentCount">0</h2>
+                </article>
+            </section>
+
+            <section class="glass-card panel-card">
+                <div class="summary-header">
+                    <div>
+                        <span class="eyebrow">Summary</span>
+                        <h2 id="studentSummaryHeading">No student selected</h2>
+                        <p id="studentSummarySubtext" class="muted-text">Search by roll number and date range.</p>
+                    </div>
+                    <div class="summary-actions">
+                        <button id="downloadStudentReportBtn" type="button" class="ghost-btn">Download CSV</button>
+                    </div>
+                </div>
+
+                <div class="summary-banner">
+                    <div>
+                        <span class="summary-label">Attendance Percentage</span>
+                        <strong id="studentAttendancePercentage">0%</strong>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentStatusTableBody">
+                            <tr><td colspan="2">Search a student to view attendance records.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let currentStudentStatus = null;
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        function buildStatusQuery() {
+            const params = new URLSearchParams();
+            const rollNo = document.getElementById("statusRollNo").value.trim().toUpperCase();
+            const startDate = document.getElementById("statusStartDate").value;
+            const endDate = document.getElementById("statusEndDate").value;
+
+            params.append("roll_no", rollNo);
+            if (startDate) params.append("start_date", startDate);
+            if (endDate) params.append("end_date", endDate);
+            return params;
+        }
+
+        function renderStudentStatus(data) {
+            currentStudentStatus = data;
+            document.getElementById("studentWorkingDays").textContent = data.summary.working_days;
+            document.getElementById("studentPresentCount").textContent = data.summary.present_count;
+            document.getElementById("studentAbsentCount").textContent = data.summary.absent_count;
+            document.getElementById("studentAttendancePercentage").textContent = `${data.summary.attendance_percentage}%`;
+            document.getElementById("studentSummaryHeading").textContent = `${data.student.name} (${data.student.roll_no})`;
+            document.getElementById("studentSummarySubtext").textContent = `${data.student.branch} | Semester ${data.student.semester}`;
+
+            const tableBody = document.getElementById("studentStatusTableBody");
+            if (!data.records.length) {
+                tableBody.innerHTML = `<tr><td colspan="2">No attendance records found for the selected range.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = data.records.map((record) => `
+                <tr>
+                    <td>${record.date}</td>
+                    <td><span class="badge ${record.status === "Present" ? "badge-success" : "badge-danger"}">${record.status}</span></td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadStudentStatus() {
+            const messageElement = document.getElementById("studentStatusMessage");
+            const rollNo = document.getElementById("statusRollNo").value.trim().toUpperCase();
+
+            if (!rollNo) {
+                messageElement.textContent = "Please enter a roll number.";
+                messageElement.className = "status-message error";
+                return;
+            }
+
+            messageElement.textContent = "Loading student attendance status...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/student-attendance-status?${buildStatusQuery().toString()}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load student status");
+                }
+
+                renderStudentStatus(data);
+                messageElement.textContent = "Student attendance status loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                currentStudentStatus = null;
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        function downloadStudentReport() {
+            if (!currentStudentStatus) {
+                document.getElementById("studentStatusMessage").textContent = "Load a student report first.";
+                document.getElementById("studentStatusMessage").className = "status-message error";
+                return;
+            }
+
+            const lines = [
+                ["Roll No", currentStudentStatus.student.roll_no],
+                ["Name", currentStudentStatus.student.name],
+                ["Branch", currentStudentStatus.student.branch],
+                ["Semester", currentStudentStatus.student.semester],
+                ["Working Days", currentStudentStatus.summary.working_days],
+                ["Present", currentStudentStatus.summary.present_count],
+                ["Absent", currentStudentStatus.summary.absent_count],
+                ["Attendance Percentage", `${currentStudentStatus.summary.attendance_percentage}%`],
+                [],
+                ["Date", "Status"],
+                ...currentStudentStatus.records.map((record) => [record.date, record.status])
+            ];
+
+            const csvContent = lines.map((row) => row.map((cell = "") => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${currentStudentStatus.student.roll_no}_attendance_report.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById("statusRollNo").addEventListener("input", (event) => {
+            event.target.value = event.target.value.toUpperCase().replace(/\s+/g, "");
+        });
+        document.getElementById("loadStudentStatusBtn").addEventListener("click", loadStudentStatus);
+        document.getElementById("downloadStudentReportBtn").addEventListener("click", downloadStudentReport);
+
+        ensureAuth();
+    </script>
+</body>
+</html>

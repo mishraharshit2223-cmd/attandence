@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOD Login | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <div class="page-shell">
+        <div class="auth-card glass-card">
+            <div class="section-heading">
+                <span class="eyebrow">Head Of Department</span>
+                <h1>HOD Login</h1>
+                <p>Log in to assign branch lectures and teachers.</p>
+            </div>
+            <form id="hodLoginForm" class="form-grid">
+                <div class="input-group">
+                    <label for="hodLoginId">HOD ID</label>
+                    <input type="text" id="hodLoginId" required>
+                </div>
+                <div class="input-group">
+                    <label for="hodLoginPassword">Password</label>
+                    <input type="password" id="hodLoginPassword" required>
+                </div>
+                <button type="submit" class="primary-btn">Login</button>
+                <p id="hodLoginMessage" class="status-message"></p>
+                <a href="login.html" class="text-link">Back to Admin Login</a>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        document.getElementById("hodLoginForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const messageElement = document.getElementById("hodLoginMessage");
+            messageElement.textContent = "Checking credentials...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/hod-login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_id: document.getElementById("hodLoginId").value.trim().toUpperCase(),
+                        password: document.getElementById("hodLoginPassword").value.trim()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Login failed");
+                }
+                localStorage.setItem("attendanceHod", JSON.stringify(data.hod));
+                window.location.href = "hod_dashboard.html";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        });
+    </script>
+</body>
+</html>
+

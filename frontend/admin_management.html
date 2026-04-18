@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Management | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Admin Setup</span>
+                <h1>Subjects, HODs, and Teachers</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html" class="active">Management</a>
+                <a href="settings.html">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="student_status.html">Student Status</a>
+                <a href="report.html">Reports</a>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="triple-layout">
+                <article class="glass-card panel-card">
+                    <div class="section-heading compact-heading">
+                        <span class="eyebrow">Subjects</span>
+                        <h2>Add Branch Subject</h2>
+                    </div>
+                    <form id="subjectForm" class="form-grid">
+                        <div class="input-group">
+                            <label for="subjectBranch">Branch</label>
+                            <select id="subjectBranch" required>
+                                <option value="">Select Branch</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                                <option value="Electronics and Telecommunication Engineering">Electronics and Telecommunication Engineering</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="subjectSemester">Semester</label>
+                            <select id="subjectSemester" required>
+                                <option value="">Select Semester</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="subjectCode">Subject Code</label>
+                            <input type="text" id="subjectCode" placeholder="CSE101" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="subjectName">Subject Name</label>
+                            <input type="text" id="subjectName" placeholder="Engineering Mathematics" required>
+                        </div>
+                        <button type="submit" class="primary-btn">Add Subject</button>
+                        <p id="subjectMessage" class="status-message"></p>
+                    </form>
+                </article>
+
+                <article class="glass-card panel-card">
+                    <div class="section-heading compact-heading">
+                        <span class="eyebrow">HOD</span>
+                        <h2>Create HOD Login</h2>
+                    </div>
+                    <form id="hodForm" class="form-grid">
+                        <div class="input-group">
+                            <label for="hodId">HOD ID</label>
+                            <input type="text" id="hodId" placeholder="HODCSE01" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="hodName">HOD Name</label>
+                            <input type="text" id="hodName" placeholder="Dr. Sharma" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="hodBranch">Branch</label>
+                            <select id="hodBranch" required>
+                                <option value="">Select Branch</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                                <option value="Electronics and Telecommunication Engineering">Electronics and Telecommunication Engineering</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="hodPassword">Password</label>
+                            <input type="password" id="hodPassword" required>
+                        </div>
+                        <button type="submit" class="primary-btn">Add HOD</button>
+                        <button type="button" id="cancelHodEditBtn" class="ghost-btn">Cancel Edit</button>
+                        <p id="hodMessage" class="status-message"></p>
+                    </form>
+                </article>
+
+                <article class="glass-card panel-card">
+                    <div class="section-heading compact-heading">
+                        <span class="eyebrow">Teacher</span>
+                        <h2>Create Teacher Login</h2>
+                    </div>
+                    <form id="teacherForm" class="form-grid">
+                        <div class="input-group">
+                            <label for="teacherId">Teacher ID</label>
+                            <input type="text" id="teacherId" placeholder="TCH001" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherName">Teacher Name</label>
+                            <input type="text" id="teacherName" placeholder="Anita Verma" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherPassword">Password</label>
+                            <input type="password" id="teacherPassword" required>
+                        </div>
+                        <button type="submit" class="primary-btn">Add Teacher</button>
+                        <button type="button" id="cancelTeacherEditBtn" class="ghost-btn">Cancel Edit</button>
+                        <p id="teacherMessage" class="status-message"></p>
+                    </form>
+                </article>
+            </section>
+
+            <section class="split-layout">
+                
+               
+                <section class="glass-card panel-card" >
+                    <div class="section-heading">
+                        <span class="eyebrow">Logins</span>
+                        <h2>HODs and Teachers</h2>
+                    </div>
+                    <div class="table-wrapper stacked-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>HOD ID</th>
+                                    <th>Name</th>
+                                    <th>Branch</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hodsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Teacher ID</th>
+                                    <th>Name</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teachersTableBody"></tbody>
+                        </table>
+                    </div>
+                </section> <br>
+                 <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Saved Data</span>
+                        <h2>Subjects</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Branch</th>
+                                    <th>Semester</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </section>
+        </main>
+    </div>
+
+    
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+        let hodCache = [];
+        let teacherCache = [];
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        function resetHodForm() {
+            const form = document.getElementById("hodForm");
+            form.reset();
+            form.dataset.editId = "";
+            form.querySelector(".primary-btn").textContent = "Add HOD";
+            document.getElementById("cancelHodEditBtn").style.display = "none";
+        }
+
+        function resetTeacherForm() {
+            const form = document.getElementById("teacherForm");
+            form.reset();
+            form.dataset.editId = "";
+            form.querySelector(".primary-btn").textContent = "Add Teacher";
+            document.getElementById("cancelTeacherEditBtn").style.display = "none";
+        }
+
+        async function loadAdminData() {
+            const [subjectsRes, hodsRes, teachersRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/subjects`),
+                fetch(`${API_BASE_URL}/hods`),
+                fetch(`${API_BASE_URL}/teachers`)
+            ]);
+
+            const [subjectsData, hodsData, teachersData] = await Promise.all([
+                subjectsRes.json(),
+                hodsRes.json(),
+                teachersRes.json()
+            ]);
+
+            hodCache = hodsData.hods || [];
+            teacherCache = teachersData.teachers || [];
+
+            document.getElementById("subjectsTableBody").innerHTML = subjectsData.subjects?.length
+                ? subjectsData.subjects.map((item) => `
+                    <tr>
+                        <td>${item.subject_code}</td>
+                        <td>${item.subject_name}</td>
+                        <td>${item.branch}</td>
+                        <td>${item.semester}</td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="4">No subjects added yet.</td></tr>`;
+
+            document.getElementById("hodsTableBody").innerHTML = hodCache.length
+                ? hodCache.map((item) => `
+                    <tr>
+                        <td>${item.hod_id}</td>
+                        <td>${item.name}</td>
+                        <td>${item.branch}</td>
+                        <td class="actions-cell">
+                            <button type="button" class="table-btn edit-credential-btn" data-role="hod" data-id="${item.hod_id}">Edit Credentials</button>
+                            <button type="button" class="table-btn delete-btn" data-delete-role="hod" data-id="${item.hod_id}">Delete</button>
+                        </td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="4">No HODs added yet.</td></tr>`;
+
+            document.getElementById("teachersTableBody").innerHTML = teacherCache.length
+                ? teacherCache.map((item) => `
+                    <tr>
+                        <td>${item.teacher_id}</td>
+                        <td>${item.name}</td>
+                        <td class="actions-cell">
+                            <button type="button" class="table-btn edit-credential-btn accent-edit-btn" data-role="teacher" data-id="${item.teacher_id}">Edit Credentials</button>
+                            <button type="button" class="table-btn delete-btn" data-delete-role="teacher" data-id="${item.teacher_id}">Delete</button>
+                        </td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="3">No teachers added yet.</td></tr>`;
+        }
+
+        document.getElementById("subjectForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const success = await submitJsonForm(`${API_BASE_URL}/subjects`, {
+                branch: document.getElementById("subjectBranch").value,
+                semester: document.getElementById("subjectSemester").value,
+                subject_code: document.getElementById("subjectCode").value.trim().toUpperCase(),
+                subject_name: document.getElementById("subjectName").value.trim()
+            }, "subjectMessage");
+            if (success) event.target.reset();
+        });
+
+        document.getElementById("hodForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const editId = event.currentTarget.dataset.editId;
+            const success = await submitJsonForm(
+                editId ? `${API_BASE_URL}/hods/${encodeURIComponent(editId)}` : `${API_BASE_URL}/hods`,
+                {
+                hod_id: document.getElementById("hodId").value.trim().toUpperCase(),
+                name: document.getElementById("hodName").value.trim(),
+                branch: document.getElementById("hodBranch").value,
+                password: document.getElementById("hodPassword").value.trim()
+            },
+                "hodMessage",
+                editId ? "PUT" : "POST"
+            );
+            if (success) resetHodForm();
+        });
+
+        document.getElementById("teacherForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const editId = event.currentTarget.dataset.editId;
+            const success = await submitJsonForm(
+                editId ? `${API_BASE_URL}/teachers/${encodeURIComponent(editId)}` : `${API_BASE_URL}/teachers`,
+                {
+                teacher_id: document.getElementById("teacherId").value.trim().toUpperCase(),
+                name: document.getElementById("teacherName").value.trim(),
+                password: document.getElementById("teacherPassword").value.trim()
+            },
+                "teacherMessage",
+                editId ? "PUT" : "POST"
+            );
+            if (success) resetTeacherForm();
+        });
+
+        async function submitJsonForm(url, payload, messageId, method = "POST") {
+            const messageElement = document.getElementById(messageId);
+            messageElement.textContent = "Saving...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to save");
+                }
+                messageElement.textContent = data.message;
+                messageElement.className = "status-message success";
+                loadAdminData();
+                return true;
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+                return false;
+            }
+        }
+
+        document.getElementById("hodsTableBody").addEventListener("click", async (event) => {
+            const editButton = event.target.closest("button[data-role='hod']");
+            if (editButton) {
+                const hod = hodCache.find((item) => item.hod_id === editButton.dataset.id);
+                if (!hod) return;
+
+                document.getElementById("hodId").value = hod.hod_id;
+                document.getElementById("hodName").value = hod.name;
+                document.getElementById("hodBranch").value = hod.branch;
+                document.getElementById("hodPassword").value = "";
+                document.getElementById("hodForm").dataset.editId = hod.hod_id;
+                document.querySelector("#hodForm .primary-btn").textContent = "Update HOD";
+                document.getElementById("cancelHodEditBtn").style.display = "inline-flex";
+                document.getElementById("hodMessage").textContent = `Editing ${hod.hod_id}. Enter new password if you want to change it.`;
+                document.getElementById("hodMessage").className = "status-message";
+                return;
+            }
+
+            const deleteButton = event.target.closest("button[data-delete-role='hod']");
+            if (!deleteButton) return;
+
+            const hodId = deleteButton.dataset.id;
+            if (!confirm(`Delete HOD ${hodId}? Related lecture assignments will also be removed.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/hods/${encodeURIComponent(hodId)}`, {
+                    method: "DELETE"
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to delete HOD");
+                }
+                document.getElementById("hodMessage").textContent = data.message;
+                document.getElementById("hodMessage").className = "status-message success";
+                resetHodForm();
+                loadAdminData();
+            } catch (error) {
+                document.getElementById("hodMessage").textContent = error.message;
+                document.getElementById("hodMessage").className = "status-message error";
+            }
+        });
+
+        document.getElementById("teachersTableBody").addEventListener("click", async (event) => {
+            const editButton = event.target.closest("button[data-role='teacher']");
+            if (editButton) {
+                const teacher = teacherCache.find((item) => item.teacher_id === editButton.dataset.id);
+                if (!teacher) return;
+
+                document.getElementById("teacherId").value = teacher.teacher_id;
+                document.getElementById("teacherName").value = teacher.name;
+                document.getElementById("teacherPassword").value = "";
+                document.getElementById("teacherForm").dataset.editId = teacher.teacher_id;
+                document.querySelector("#teacherForm .primary-btn").textContent = "Update Teacher";
+                document.getElementById("cancelTeacherEditBtn").style.display = "inline-flex";
+                document.getElementById("teacherMessage").textContent = `Editing ${teacher.teacher_id}. Enter new password to update credentials.`;
+                document.getElementById("teacherMessage").className = "status-message";
+                return;
+            }
+
+            const deleteButton = event.target.closest("button[data-delete-role='teacher']");
+            if (!deleteButton) return;
+
+            const teacherId = deleteButton.dataset.id;
+            if (!confirm(`Delete Teacher ${teacherId}? Assigned lectures and linked teacher attendance will also be removed.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/teachers/${encodeURIComponent(teacherId)}`, {
+                    method: "DELETE"
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to delete teacher");
+                }
+                document.getElementById("teacherMessage").textContent = data.message;
+                document.getElementById("teacherMessage").className = "status-message success";
+                resetTeacherForm();
+                loadAdminData();
+            } catch (error) {
+                document.getElementById("teacherMessage").textContent = error.message;
+                document.getElementById("teacherMessage").className = "status-message error";
+            }
+        });
+
+        document.getElementById("cancelHodEditBtn").addEventListener("click", () => {
+            resetHodForm();
+            document.getElementById("hodMessage").textContent = "Edit cancelled.";
+            document.getElementById("hodMessage").className = "status-message";
+        });
+
+        document.getElementById("cancelTeacherEditBtn").addEventListener("click", () => {
+            resetTeacherForm();
+            document.getElementById("teacherMessage").textContent = "Edit cancelled.";
+            document.getElementById("teacherMessage").className = "status-message";
+        });
+
+        ensureAuth();
+        resetHodForm();
+        resetTeacherForm();
+        loadAdminData();
+    </script>
+</body>
+</html>
+

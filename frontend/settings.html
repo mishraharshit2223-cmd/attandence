@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Settings | Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar glass-card">
+            <div>
+                <span class="eyebrow">Admin Settings</span>
+                <h1>WhatsApp and Link Configuration</h1>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="admin_management.html">Management</a>
+                <a href="settings.html" class="active">Settings</a>
+                <a href="add_student.html">Students</a>
+                <a href="attendance.html">Attendance</a>
+                <a href="report.html">Reports</a>
+            </nav>
+        </header>
+
+        <main class="content-stack">
+            <section class="stats-grid stats-grid-three">
+                <article class="stat-card glass-card">
+                    <p>Twilio SID</p>
+                    <h2 id="settingsSidStatus">No</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Twilio Token</p>
+                    <h2 id="settingsTokenStatus">No</h2>
+                </article>
+                <article class="stat-card glass-card">
+                    <p>Sender Number</p>
+                    <h2 id="settingsSenderStatus">No</h2>
+                </article>
+            </section>
+
+            <section class="split-layout">
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">Current Setup</span>
+                        <h2>Runtime Configuration</h2>
+                        <p>These values are read from backend environment variables.</p>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="settings-item">
+                            <span class="summary-label">WhatsApp Sender</span>
+                            <strong id="settingsSenderNumber">Not configured</strong>
+                        </div>
+                        <div class="settings-item">
+                            <span class="summary-label">Public Attendance Link</span>
+                            <strong id="settingsAttendanceUrl">Not configured</strong>
+                        </div>
+                        <div class="settings-item">
+                            <span class="summary-label">Student Portal Link</span>
+                            <strong id="settingsStudentPortalUrl">Not configured</strong>
+                        </div>
+                    </div>
+                    <p id="settingsMessage" class="status-message"></p>
+                </section>
+
+                <section class="glass-card panel-card">
+                    <div class="section-heading">
+                        <span class="eyebrow">PowerShell Setup</span>
+                        <h2>Use Your Official Number</h2>
+                        <p>Set these before starting FastAPI. Replace placeholders with your actual Twilio credentials.</p>
+                    </div>
+                    <div class="code-card">
+                        <pre><code id="settingsCommands">$env:TWILIO_ACCOUNT_SID="your_sid"
+$env:TWILIO_AUTH_TOKEN="your_token"
+$env:TWILIO_WHATSAPP_FROM="whatsapp:+917024899669"
+$env:PUBLIC_ATTENDANCE_URL="http://127.0.0.1:5500/frontend/attendance_link.html"
+$env:STUDENT_PORTAL_URL="http://127.0.0.1:5500/frontend/student_login.html"
+.\venv\Scripts\python.exe -m uvicorn backend.main:app --reload</code></pre>
+                    </div>
+                    <p class="helper-text">Your number `7024899669` must be onboarded and approved on WhatsApp Business Platform first.</p>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin && window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000";
+
+        function ensureAuth() {
+            if (localStorage.getItem("attendanceAdmin") !== "true") {
+                window.location.href = "login.html";
+            }
+        }
+
+        async function loadSettings() {
+            const messageElement = document.getElementById("settingsMessage");
+            messageElement.textContent = "Loading notification settings...";
+            messageElement.className = "status-message";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/notification-settings`);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to load notification settings");
+                }
+
+                const settings = data.settings;
+                document.getElementById("settingsSidStatus").textContent = settings.twilio_account_sid_configured ? "Yes" : "No";
+                document.getElementById("settingsTokenStatus").textContent = settings.twilio_auth_token_configured ? "Yes" : "No";
+                document.getElementById("settingsSenderStatus").textContent = settings.twilio_whatsapp_from ? "Yes" : "No";
+                document.getElementById("settingsSenderNumber").textContent = settings.twilio_whatsapp_from || "Not configured";
+                document.getElementById("settingsAttendanceUrl").textContent = settings.public_attendance_url;
+                document.getElementById("settingsStudentPortalUrl").textContent = settings.student_portal_url;
+
+                messageElement.textContent = "Settings loaded successfully.";
+                messageElement.className = "status-message success";
+            } catch (error) {
+                messageElement.textContent = error.message;
+                messageElement.className = "status-message error";
+            }
+        }
+
+        ensureAuth();
+        loadSettings();
+    </script>
+</body>
+</html>
