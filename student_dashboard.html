@@ -105,9 +105,7 @@
         let currentPortalData = null;
 
         function getFrontendPage(pageName, extraQuery = "") {
-            const isServedFromFrontend = window.location.pathname.includes("/frontend/");
-            const prefix = isServedFromFrontend ? "/frontend/" : "";
-            return `${prefix}${pageName}${extraQuery}`;
+            return `${pageName}${extraQuery}`;
         }
 
         function clearStudentSession() {
@@ -162,7 +160,7 @@
 
             if (queryStudent && queryStudent.roll_no) {
                 studentSession = storedStudent && storedStudent.roll_no === queryStudent.roll_no
-                    ? storedStudent
+                    ? { ...queryStudent, ...storedStudent }
                     : queryStudent;
                 saveStudentSession(studentSession);
                 return true;
@@ -236,7 +234,23 @@
             const messageElement = document.getElementById("studentPortalMessage");
             const startDate = document.getElementById("studentPortalStartDate").value;
             const endDate = document.getElementById("studentPortalEndDate").value;
+            const loadButton = document.getElementById("loadStudentPortalBtn");
             const query = new URLSearchParams({ roll_no: studentSession.roll_no });
+
+            if (!studentSession || !studentSession.roll_no) {
+                messageElement.textContent = "Student session missing hai. Dobara login karo.";
+                messageElement.className = "status-message error";
+                setTimeout(() => {
+                    window.location.replace(getFrontendPage("student_login.html", `?_v=${Date.now()}`));
+                }, 900);
+                return;
+            }
+
+            if (startDate && endDate && startDate > endDate) {
+                messageElement.textContent = "Start date end date se badi nahi ho sakti.";
+                messageElement.className = "status-message error";
+                return;
+            }
 
             if (startDate) {
                 query.append("start_date", startDate);
@@ -247,6 +261,8 @@
 
             messageElement.textContent = "Loading attendance...";
             messageElement.className = "status-message";
+            loadButton.disabled = true;
+            loadButton.textContent = "Loading...";
 
             try {
                 const response = await fetch(`${API_BASE_URL}/student-attendance-status?${query.toString()}`);
@@ -263,6 +279,9 @@
                 document.getElementById("studentPortalTableBody").innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
                 messageElement.textContent = error.message;
                 messageElement.className = "status-message error";
+            } finally {
+                loadButton.disabled = false;
+                loadButton.textContent = "Load Attendance";
             }
         }
 

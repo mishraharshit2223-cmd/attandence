@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-pymongo
 openpyxl
 python-multipart
-
+pymongo

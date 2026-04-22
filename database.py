@@ -3,6 +3,7 @@ import os
 from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.errors import DuplicateKeyError
 
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
@@ -21,7 +22,6 @@ assignments_collection: Collection = db["assignments"]
 
 
 def initialize_database() -> None:
-    """Create the indexes required for consistent attendance data."""
     teachers_collection.delete_many(
         {
             "$or": [

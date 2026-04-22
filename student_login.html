@@ -61,9 +61,7 @@
         }
 
         function getFrontendPage(pageName, extraQuery = "") {
-            const isServedFromFrontend = window.location.pathname.includes("/frontend/");
-            const prefix = isServedFromFrontend ? "/frontend/" : "";
-            return `${prefix}${pageName}${extraQuery}`;
+            return `${pageName}${extraQuery}`;
         }
 
         async function readJsonResponse(response) {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login | Attendance System</title>
-    <link rel="stylesheet" href="frontend/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-body">
     <div class="page-shell">
@@ -31,9 +31,9 @@
             </form>
 
             <div class="role-links">
-                <a href="frontend/student_login.html" class="ghost-btn">Student Login</a>
-                <a href="frontend/teacher_login.html" class="ghost-btn">Teacher Login</a>
-                <a href="frontend/hod_login.html" class="ghost-btn">HOD Login</a>
+                <a href="student_login.html" class="ghost-btn">Student Login</a>
+                <a href="teacher_login.html" class="ghost-btn">Teacher Login</a>
+                <a href="hod_login.html" class="ghost-btn">HOD Login</a>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
                 messageElement.className = "status-message success";
 
                 setTimeout(() => {
-                    window.location.href = "frontend/dashboard.html";
+                    window.location.href = "dashboard.html";
                 }, 700);
             } catch (error) {
                 messageElement.textContent = error.message;
@@ -105,3 +105,4 @@
     </script>
 </body>
 </html>
+

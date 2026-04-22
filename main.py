@@ -13,11 +13,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from pymongo.errors import DuplicateKeyError
 
-from .database import (
+from database import (
     assignments_collection,
     attendance_collection,
+    DuplicateKeyError,
     hods_collection,
     initialize_database,
     students_collection,
@@ -27,8 +27,7 @@ from .database import (
 
 
 app = FastAPI(title="Advanced Attendance Management System")
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+BASE_DIR = Path(__file__).resolve().parent
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,9 +36,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
-
 
 VALID_BRANCHES = [
     "Civil Engineering",
@@ -136,7 +132,7 @@ def startup_event() -> None:
 
 @app.get("/", include_in_schema=False)
 def root() -> RedirectResponse:
-    return RedirectResponse(url="/frontend/login.html")
+    return RedirectResponse(url="/index.html")
 
 
 @app.get("/health")
@@ -249,7 +245,7 @@ def send_whatsapp_message(student: dict, body: str) -> None:
 
 def notify_student_attendance(student: dict, date: str, status: str, subject_name: str) -> None:
     student = ensure_student_portal_token(student)
-    base_public_link = os.getenv("PUBLIC_ATTENDANCE_URL", "http://127.0.0.1:5500/frontend/attendance_link.html")
+    base_public_link = os.getenv("PUBLIC_ATTENDANCE_URL", "http://127.0.0.1:5500/attendance_link.html")
     direct_link = f"{base_public_link}?token={quote_plus(student['portal_token'])}"
     student_body = (
         f"Attendance Update\n"
@@ -438,7 +434,7 @@ def student_forgot_password(payload: StudentForgotPasswordRequest) -> dict:
     ):
         raise HTTPException(status_code=400, detail="Provided recovery number does not match our records")
 
-    portal_link = os.getenv("STUDENT_PORTAL_URL", "http://127.0.0.1:5500/frontend/student_login.html")
+    portal_link = os.getenv("STUDENT_PORTAL_URL", "http://127.0.0.1:5500/student_login.html")
     body = (
         f"Password Recovery\n"
         f"Student: {student.get('name', '')}\n"
@@ -1240,11 +1236,11 @@ def notification_settings() -> dict:
     twilio_from = os.getenv("TWILIO_WHATSAPP_FROM", "").strip()
     public_attendance_url = os.getenv(
         "PUBLIC_ATTENDANCE_URL",
-        "http://127.0.0.1:5500/frontend/attendance_link.html",
+        "http://127.0.0.1:5500/attendance_link.html",
     )
     student_portal_url = os.getenv(
         "STUDENT_PORTAL_URL",
-        "http://127.0.0.1:5500/frontend/student_login.html",
+        "http://127.0.0.1:5500/student_login.html",
     )
 
     return {
@@ -1257,3 +1253,6 @@ def notification_settings() -> dict:
             "student_portal_url": student_portal_url,
         },
     }
+
+
+app.mount("/", StaticFiles(directory=str(BASE_DIR), html=True), name="static")
