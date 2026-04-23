@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Management | Attendance System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app-config.js"></script>
+    <script src="app-common.js"></script>
 </head>
 <body>
     <div class="page-shell">
@@ -189,16 +191,7 @@
     
 
     <script>
-        const API_BASE_URL = (() => {
-    const { protocol, hostname, port, origin } = window.location;
-    if ((hostname === "127.0.0.1" || hostname === "localhost") && port && port !== "8000") {
-        return `${protocol}//${hostname}:8000`;
-    }
-    if (origin && origin.startsWith("http")) {
-        return origin;
-    }
-    return "http://localhost:8000";
-})();
+        const API_BASE_URL = window.AttendanceApp.getApiBase();
         let hodCache = [];
         let teacherCache = [];
 
@@ -334,7 +327,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
-                const data = await response.json();
+                const data = await window.AttendanceApp.readJsonResponse(response);
                 if (!response.ok) {
                     throw new Error(data.detail || "Unable to save");
                 }
@@ -379,7 +372,7 @@
                 const response = await fetch(`${API_BASE_URL}/hods/${encodeURIComponent(hodId)}`, {
                     method: "DELETE"
                 });
-                const data = await response.json();
+                const data = await window.AttendanceApp.readJsonResponse(response);
                 if (!response.ok) {
                     throw new Error(data.detail || "Unable to delete HOD");
                 }
@@ -422,7 +415,7 @@
                 const response = await fetch(`${API_BASE_URL}/teachers/${encodeURIComponent(teacherId)}`, {
                     method: "DELETE"
                 });
-                const data = await response.json();
+                const data = await window.AttendanceApp.readJsonResponse(response);
                 if (!response.ok) {
                     throw new Error(data.detail || "Unable to delete teacher");
                 }
@@ -455,4 +448,7 @@
     </script>
 </body>
 </html>
+
+
+
 

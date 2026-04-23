@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Attendance System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app-config.js"></script>
+    <script src="app-common.js"></script>
 </head>
 <body>
     <div class="page-shell">
@@ -98,8 +100,8 @@
 
                 <div class="quick-actions">
                     <a class="quick-action" href="add_student.html">
-                        <strong>Student Directory</strong>
-                        <span>Add, edit, delete, aur import students.</span>
+                        <strong>College Data</strong>
+                        <span>Add, edit, delete, aur import student records.</span>
                     </a>
                     <a class="quick-action" href="attendance.html">
                         <strong>Mark Attendance</strong>
@@ -117,21 +119,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = (() => {
-            const savedBase = localStorage.getItem("attendanceApiBase");
-            if (savedBase) {
-                return savedBase.replace(/\/$/, "");
-            }
-
-            const { protocol, hostname, port, origin } = window.location;
-            if ((hostname === "127.0.0.1" || hostname === "localhost") && port && port !== "8000") {
-                return `${protocol}//${hostname}:8000`;
-            }
-            if (origin && origin.startsWith("http")) {
-                return origin;
-            }
-            return "http://localhost:8000";
-        })();
+        const API_BASE_URL = window.AttendanceApp.getApiBase();
 
         async function readJsonResponse(response) {
             const text = await response.text();
@@ -152,14 +140,25 @@
             }
         }
 
+        function setTextIfExists(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
         function setLastRefresh() {
-            document.getElementById("lastRefresh").textContent = new Date().toLocaleString();
+            setTextIfExists("lastRefresh", new Date().toLocaleString());
         }
 
         async function loadHealth() {
             const apiStatusLabel = document.getElementById("apiStatusLabel");
             const apiStatusMessage = document.getElementById("apiStatusMessage");
             const databaseStatus = document.getElementById("databaseStatus");
+
+            if (!apiStatusLabel || !apiStatusMessage || !databaseStatus) {
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE_URL}/health`);
@@ -183,10 +182,14 @@
             const refreshButton = document.getElementById("refreshBtn");
             const messageElement = document.getElementById("dashboardMessage");
 
-            refreshButton.disabled = true;
-            refreshButton.textContent = "Refreshing...";
-            messageElement.textContent = "Dashboard stats load ho rahe hain...";
-            messageElement.className = "status-message";
+            if (refreshButton) {
+                refreshButton.disabled = true;
+                refreshButton.textContent = "Refreshing...";
+            }
+            if (messageElement) {
+                messageElement.textContent = "Dashboard stats load ho rahe hain...";
+                messageElement.className = "status-message";
+            }
 
             try {
                 const response = await fetch(`${API_BASE_URL}/dashboard-stats`);
@@ -206,24 +209,33 @@
                 document.getElementById("totalHods").textContent = stats.total_hods ?? 0;
                 document.getElementById("totalAssignments").textContent = stats.total_assignments ?? 0;
 
-                document.getElementById("welcomeTitle").textContent = `Loaded ${stats.total_students ?? 0} students and ${stats.total_attendance_records ?? 0} attendance records`;
-                document.getElementById("dashboardLead").textContent = "Live summary backend database se aa rahi hai. Aap ab daily operations direct yahin se continue kar sakte hain.";
-                messageElement.textContent = "Dashboard successfully database se sync ho gaya.";
-                messageElement.className = "status-message success";
+                setTextIfExists("welcomeTitle", `Loaded ${stats.total_students ?? 0} students and ${stats.total_attendance_records ?? 0} attendance records`);
+                setTextIfExists("dashboardLead", "Live summary backend database se aa rahi hai. Aap ab daily operations direct yahin se continue kar sakte hain.");
+                if (messageElement) {
+                    messageElement.textContent = "Dashboard successfully database se sync ho gaya.";
+                    messageElement.className = "status-message success";
+                }
                 setLastRefresh();
             } catch (error) {
-                messageElement.textContent = error.message;
-                messageElement.className = "status-message error";
+                if (messageElement) {
+                    messageElement.textContent = error.message;
+                    messageElement.className = "status-message error";
+                }
             } finally {
-                refreshButton.disabled = false;
-                refreshButton.textContent = "Refresh Dashboard";
+                if (refreshButton) {
+                    refreshButton.disabled = false;
+                    refreshButton.textContent = "Refresh Dashboard";
+                }
             }
         }
 
-        document.getElementById("refreshBtn").addEventListener("click", async () => {
-            await loadHealth();
-            await loadStats();
-        });
+        const refreshButton = document.getElementById("refreshBtn");
+        if (refreshButton) {
+            refreshButton.addEventListener("click", async () => {
+                await loadHealth();
+                await loadStats();
+            });
+        }
 
         document.getElementById("logoutBtn").addEventListener("click", () => {
             localStorage.removeItem("attendanceAdmin");
@@ -236,3 +248,7 @@
     </script>
 </body>
 </html>
+
+
+
+

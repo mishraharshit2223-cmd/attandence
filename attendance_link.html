@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance Link | Attendance System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app-config.js"></script>
+    <script src="app-common.js"></script>
 </head>
 <body>
     <div class="page-shell">
@@ -66,16 +68,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = (() => {
-    const { protocol, hostname, port, origin } = window.location;
-    if ((hostname === "127.0.0.1" || hostname === "localhost") && port && port !== "8000") {
-        return `${protocol}//${hostname}:8000`;
-    }
-    if (origin && origin.startsWith("http")) {
-        return origin;
-    }
-    return "http://localhost:8000";
-})();
+        const API_BASE_URL = window.AttendanceApp.getApiBase();
 
         function renderPublicProfile(student) {
             document.getElementById("publicPortalHeading").textContent = `${student.name} (${student.roll_no})`;
@@ -98,7 +91,7 @@
 
             try {
                 const response = await fetch(`${API_BASE_URL}/public-student-attendance/${encodeURIComponent(token)}`);
-                const data = await response.json();
+                const data = await window.AttendanceApp.readJsonResponse(response);
                 if (!response.ok) {
                     throw new Error(data.detail || "Unable to load attendance details");
                 }
@@ -131,3 +124,6 @@
     </script>
 </body>
 </html>
+
+
+

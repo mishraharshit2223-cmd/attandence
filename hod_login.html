@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HOD Login | Attendance System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app-config.js"></script>
+    <script src="app-common.js"></script>
 </head>
 <body class="auth-body">
     <div class="page-shell">
@@ -31,16 +33,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = (() => {
-    const { protocol, hostname, port, origin } = window.location;
-    if ((hostname === "127.0.0.1" || hostname === "localhost") && port && port !== "8000") {
-        return `${protocol}//${hostname}:8000`;
-    }
-    if (origin && origin.startsWith("http")) {
-        return origin;
-    }
-    return "http://localhost:8000";
-})();
+        const API_BASE_URL = window.AttendanceApp.getApiBase();
         document.getElementById("hodLoginForm").addEventListener("submit", async (event) => {
             event.preventDefault();
             const messageElement = document.getElementById("hodLoginMessage");
@@ -56,7 +49,7 @@
                         password: document.getElementById("hodLoginPassword").value.trim()
                     })
                 });
-                const data = await response.json();
+                const data = await window.AttendanceApp.readJsonResponse(response);
                 if (!response.ok) {
                     throw new Error(data.detail || "Login failed");
                 }
@@ -70,4 +63,7 @@
     </script>
 </body>
 </html>
+
+
+
 
